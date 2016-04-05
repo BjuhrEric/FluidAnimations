@@ -7,7 +7,7 @@
 #include "GridPawn.generated.h"
 
 
-UCLASS()
+UCLASS(Blueprintable)
 class ORTHOTESTFLEX_API AGridPawn : public APawn
 {
 	GENERATED_BODY()
@@ -25,17 +25,11 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-	inline const unsigned int getHeight() const;
-	inline const unsigned int getWidth() const;
-
-	inline const void setHeight(unsigned int);
-	inline const void setWidth(unsigned int);
-
-	void init();
+	UFUNCTION(BlueprintCallable, Category = "Initialization") void init();
 
 private:
 	GridTerrain* gt = NULL;
-	unsigned int width = 0;
-	unsigned int height = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions") unsigned int width;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions") unsigned int height;
 	
 };

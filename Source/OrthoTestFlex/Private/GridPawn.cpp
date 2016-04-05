@@ -17,15 +17,11 @@ void AGridPawn::BeginPlay()
 	
 }
 
-inline const unsigned int AGridPawn::getHeight() const {
-	return height;
-};
-
-inline const unsigned int AGridPawn::getWidth() const {
-	return width;
-};
-
 void AGridPawn::init() {
+	if (gt) {
+		gt->dispose();
+		free(gt);
+	}
 	gt = new GridTerrain(width, height);
 }
 
@@ -42,13 +38,5 @@ void AGridPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 	Super::SetupPlayerInputComponent(InputComponent);
 
 }
-
-inline const void AGridPawn::setHeight(unsigned int h) {
-	height = h;
-};
-
-inline const void AGridPawn::setWidth(unsigned int w) {
-	width = w;
-};
 
 
