@@ -3,16 +3,16 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "LFTestEmitter.generated.h"
+#include "ParticleActor.generated.h"
 
 UCLASS()
-class ORTHOTESTFLEX_API ALFTestEmitter : public AActor
+class ORTHOTESTFLEX_API AParticleActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	ALFTestEmitter();
+	AParticleActor();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -20,4 +20,11 @@ public:
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
 
+	void SetSprite(class UPaperSprite* sprite);
+
+	void SetLocation(float x, float y);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fluid", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* Sprite;
+	
 };
