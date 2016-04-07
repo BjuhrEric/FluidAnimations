@@ -6,6 +6,7 @@
 #include "LiquidFunPawn.generated.h"
 
 class AParticleActor;
+class ATerrainActor;
 UCLASS()
 class ORTHOTESTFLEX_API ALiquidFunPawn : public APawn
 {
@@ -41,5 +42,18 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fluid", meta = (AllowPrivateAccess = "true"))
 	class UPaperSpriteComponent* FluidSprite;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* GroundSprite;
+
 	TArray<AParticleActor*> ParticleArray;
+
+	TArray<ATerrainActor*> TerrainArray;
+
+	short TerrainGrid[100][100];
+
+	const float SCALE_FACTOR = 10.0f;
+
+	void InitFluids();
+
+	void InitTerrain();
 };
