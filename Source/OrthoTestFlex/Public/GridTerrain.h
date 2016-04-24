@@ -6,23 +6,23 @@
  * 
  */
 
-const unsigned int TYPE_DESTRUCTIBLE_CELL = 0;
-const unsigned int TYPE_EMPTY_CELL = 1;
-const unsigned int TYPE_INDESTRUCTIBLE_CELL = 2;
+const int32 TYPE_DESTRUCTIBLE_CELL = 0;
+const int32 TYPE_EMPTY_CELL = 1;
+const int32 TYPE_INDESTRUCTIBLE_CELL = 2;
 
 class GridTerrain
 {
 public:
 	GridTerrain(unsigned int, unsigned int);
 	void dispose();
-	inline const int getCellType(unsigned int x, unsigned int y) const;
-	inline const unsigned int getHeight() const;
-	inline const unsigned int getWidth() const;
-	inline const void setCellType(unsigned int x, unsigned int y, unsigned int type) const;
+	inline const int32 getCellType(int32 x, int32 y) const;
+	inline const int32 getHeight() const;
+	inline const int32 getWidth() const;
+	inline const void setCellType(int32 x, int32 y, int32 type) const;
 
 private:
 	void init();
-	const unsigned int width;
-	const unsigned int height;
-	unsigned int **cells;
+	const int32 width;
+	const int32 height;
+	int32 **cells;
 };

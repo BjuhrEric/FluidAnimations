@@ -8,31 +8,31 @@
 	}
 
 	void GridTerrain::dispose() {
-		for (unsigned int i = 0; i < width; ++i) {
+		for (int32 i = 0; i < width; ++i) {
 			delete[] cells[i];
 		}
 		delete[] cells;
 	}
 
-	inline const int GridTerrain::getCellType(unsigned int x, unsigned int y) const {
+	inline const int GridTerrain::getCellType(int32 x, int32 y) const {
 		return cells[x][y];
 	};
 
-	inline const unsigned int GridTerrain::getHeight() const {
+	inline const int32 GridTerrain::getHeight() const {
 		return height; 
 	};
 
-	inline const unsigned int GridTerrain::getWidth() const {
+	inline const int32 GridTerrain::getWidth() const {
 		return width; 
 	};
 		
-	inline const void GridTerrain::setCellType(unsigned int x, unsigned int y, unsigned int type) const {
+	inline const void GridTerrain::setCellType(int32 x, int32 y, int32 type) const {
 		cells[x][y] = type;
 	};
 		
 	void GridTerrain::init() {
-		cells = new unsigned int*[width];
-		for (unsigned int i = 0; i < width; i++) {
-			cells[i] = new unsigned int[height];
+		cells = new int32*[(int) width];
+		for (int32 i = 0; i < width; i++) {
+			cells[i] = new int32[(int) height];
 		}
 	}
