@@ -45,6 +45,10 @@ void AGridPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
+	InputComponent->BindAction("LeftMouse", IE_Pressed, this, &AGridPawn::OnClick);
+	InputComponent->BindAction("LeftMouse", IE_Released, this, &AGridPawn::OnRelease);
+	InputComponent->BindAxis("MouseX", this, &AGridPawn::SetMouseX);
+	InputComponent->BindAxis("MouseY", this, &AGridPawn::SetMouseY);
 }
 
 void AGridPawn::spawnCubes()
@@ -64,3 +68,18 @@ void AGridPawn::spawnCubes()
 	}
 }
 
+void AGridPawn::OnClick() {
+
+}
+
+void AGridPawn::OnRelease() {
+
+}
+
+void AGridPawn::SetMouseX(float x) {
+	AGridPawn::x = x;
+}
+
+void AGridPawn::SetMouseY(float y) {
+	AGridPawn::y = y;
+}

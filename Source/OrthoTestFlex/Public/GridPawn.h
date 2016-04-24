@@ -23,14 +23,19 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
+	
 	UFUNCTION(BlueprintCallable, Category="Initialization") void init();
 	UFUNCTION(BlueprintCallable, Category="Initialization") void spawnCubes();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions") int32 width = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions") int32 height = 0;
 
 private:
+	float x, y;
 	GridTerrain* gt = NULL;
 	TSubclassOf<class ADestructibleCubeActor> MyItemBlueprint;
 
+	inline void OnClick();
+	inline void OnRelease();
+	inline void SetMouseX(float x);
+	inline void SetMouseY(float y);
 };
