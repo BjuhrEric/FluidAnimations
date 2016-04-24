@@ -14,7 +14,7 @@
 		delete[] cells;
 	}
 
-	inline const int GridTerrain::getCellType(int32 x, int32 y) const {
+	inline const int64 GridTerrain::getCell(int32 x, int32 y) const {
 		return cells[x][y];
 	};
 
@@ -26,13 +26,13 @@
 		return width; 
 	};
 		
-	inline const void GridTerrain::setCellType(int32 x, int32 y, int32 type) const {
-		cells[x][y] = type;
+	inline const void GridTerrain::setCell(int32 x, int32 y, int64 ptr) const {
+		cells[x][y] = ptr;
 	};
 		
 	void GridTerrain::init() {
-		cells = new int32*[(int) width];
+		cells = new int64*[(int) width];
 		for (int32 i = 0; i < width; i++) {
-			cells[i] = new int32[(int) height];
+			cells[i] = new int64[(int) height];
 		}
 	}

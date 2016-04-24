@@ -26,18 +26,22 @@ void AGridPawn::BeginPlay()
 
 void AGridPawn::init()
 {
-	/*if (gt) {
+	if (gt) {
 		gt->dispose();
 		free(gt);
 	}
-	gt = new GridTerrain(width, height);*/
+	gt = new GridTerrain(width, height);
 }
 
 // Called every frame
 void AGridPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
+	if (mouseDown) {
+		/*
+		 * Do stuff here
+		 */
+	}
 }
 
 // Called to bind functionality to input
@@ -63,17 +67,18 @@ void AGridPawn::spawnCubes()
 				SpawnParams.Instigator = this;
 				FVector* pos = new FVector(0, x * 100, y * 100);
 				ADestructibleCubeActor* const cube = World->SpawnActor<ADestructibleCubeActor>(MyItemBlueprint, *pos, FRotator::ZeroRotator, SpawnParams);
+				gt->setCell((int32)x, (int32)y, (int64) cube);
 			}
 		}
 	}
 }
 
 void AGridPawn::OnClick() {
-
+	mouseDown = true;
 }
 
 void AGridPawn::OnRelease() {
-
+	mouseDown = false;
 }
 
 void AGridPawn::SetMouseX(float x) {

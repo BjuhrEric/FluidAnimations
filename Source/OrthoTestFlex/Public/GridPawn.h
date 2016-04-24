@@ -30,6 +30,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dimensions") int32 height = 0;
 
 private:
+	bool mouseDown;
 	float x, y;
 	GridTerrain* gt = NULL;
 	TSubclassOf<class ADestructibleCubeActor> MyItemBlueprint;

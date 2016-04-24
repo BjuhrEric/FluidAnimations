@@ -5,6 +5,10 @@
 #include "GameFramework/Actor.h"
 #include "DestructibleCubeActor.generated.h"
 
+const int32 TYPE_DESTRUCTIBLE_CELL = 0;
+const int32 TYPE_EMPTY_CELL = 1;
+const int32 TYPE_INDESTRUCTIBLE_CELL = 2;
+
 UCLASS()
 class ORTHOTESTFLEX_API ADestructibleCubeActor : public AActor
 {
@@ -20,6 +24,10 @@ public:
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
 
-	
-	
+	UFUNCTION(BlueprintCallable, Category = "Type") void SetType(int32 type);
+
+	UFUNCTION(BlueprintCallable, Category = "Type") int32 GetType();
+
+private:
+	int32 type;
 };

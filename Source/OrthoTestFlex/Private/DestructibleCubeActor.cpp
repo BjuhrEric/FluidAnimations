@@ -26,3 +26,11 @@ void ADestructibleCubeActor::Tick( float DeltaTime )
 
 }
 
+void ADestructibleCubeActor::SetType(int32 type) {
+	ADestructibleCubeActor::type = type;
+}
+
+int32 ADestructibleCubeActor::GetType() {
+	return type;
+}
+
