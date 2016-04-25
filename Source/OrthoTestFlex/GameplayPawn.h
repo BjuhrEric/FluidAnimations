@@ -17,8 +17,7 @@ public:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// Called when the game ends
-	virtual void BeginDestroy() override;
+	virtual void Destroyed() override;
 	
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
@@ -33,7 +32,26 @@ private:
 
 	void LFCleanUp();
 
+	void SetLMBPressed();
+
+	void SetLMBReleased();
+
 	void UpdateLF(float DeltaTime);
+
+	FVector2D GetMouseWorldPosition();
+
+	void DestroySquare(FVector2D worldCoord, float r);
+
+	int WorldToGridX(int x);
+	int WorldToGridY(int y);
+	float GridToWorldX(int x);
+	float GridToWorldY(int y);
+	void UpdatePos(int x, int y);
+	void DestroyBody(int x, int y);
+	void CreateBody(int x, int y);
+	void RemoveAtIndex(int x, int y);
+
+	void RemoveSpriteAndUpdate(int x, int y);
 
 	//The sprite used for the fluid particles
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fluid", meta = (AllowPrivateAccess = "true"))
@@ -49,10 +67,24 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* GroupedGroundSprite;
 
-	TMap<FVector2D, class b2Body*> TerrainBodies;
+	//TMap<FVector2D, class b2Body*> TerrainBodies;
 
-	TMap<FVector2D, int32> TerrainInstanceIndices;
+	//TMap<FVector2D, int32> TerrainInstanceIndices;
 
 	//The scaling used to translate LiquidFun coordinates to world space
 	const float SCALE_FACTOR = 10.0f;
+
+	bool LMBPressed = false;
+
+
+
+	static const int gridX = -50;
+	static const int gridY = -100;
+	static const int width = 100;
+	static const int height = 100;
+	static const int spacing = 1;
+	char grid[width][height];
+	class b2Body* TerrainBodies[width][height];
+	TSet<FVector2D> boxSet;
+	int32 TerrainInstanceIndices[width][height];
 };

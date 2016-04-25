@@ -7,9 +7,18 @@
 #include "liquidfun.h"
 
 b2Vec2 gravity(0.0f, -80.0f);
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2World world(gravity);
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2Body* body;
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2ParticleSystem* particleSystem;
+
+
+const char D_TERRAIN = 0, E_TERRAIN = 1, UD_TERRAIN = 2;
+const int dX[] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+const int dY[] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+float timer = 0.0f;
 // Sets default values
 AGameplayPawn::AGameplayPawn()
 {
@@ -30,28 +39,65 @@ AGameplayPawn::AGameplayPawn()
 void AGameplayPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	InitFluids();
+	GroupedFluidSprite->ClearInstances();
+	GroupedGroundSprite->ClearInstances();
 	InitTerrain();
+	InitFluids();
+	//GroupedGroundSprite->RemoveInstance(*TerrainInstanceIndices.Find(FVector2D(1, 1)));
 }
 
-// Called when the game ends
-void AGameplayPawn::BeginDestroy()
+void AGameplayPawn::Destroyed()
 {
-	Super::BeginDestroy();
-	LFCleanUp();
+	Super::Destroyed();
+	GroupedFluidSprite->ClearInstances();
+	GroupedGroundSprite->ClearInstances();
+	/*
+	body = nullptr;
+	b2Body* bodies = world.GetBodyList();
+	while (bodies != nullptr)
+	{
+		world.DestroyBody(bodies);
+		bodies = bodies->GetNext();
+	}
+	world.DestroyParticleSystem(particleSystem);
+	*/
+	world.~b2World();
+	delete GroupedFluidSprite;
+	delete GroupedGroundSprite;
 }
 
 // Called every frame
 void AGameplayPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+	timer += DeltaTime;
 	UpdateLF(DeltaTime);
+	if (LMBPressed)
+	{
+		FVector2D mousePos = GetMouseWorldPosition();
+		int nx = WorldToGridX(mousePos.X);
+		int ny = WorldToGridY(mousePos.Y);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, GetMouseWorldPosition().ToString());
+		LMBPressed = false;
+		//DestroySquare(GetMouseWorldPosition(), 5);
+	}
+	/*
+	if (timer > 10.0f)
+	{
+		DestroySquare(FVector2D(0, -30), 3);
+		timer = 0.0f;
+	}
+	*/
 }
 
 // Called to bind functionality to input
 void AGameplayPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
+
+	InputComponent->BindAction("Dig", IE_Pressed, this, &AGameplayPawn::SetLMBPressed);
+	InputComponent->BindAction("Dig", IE_Released, this, &AGameplayPawn::SetLMBReleased);
 
 }
 
@@ -70,67 +116,31 @@ void AGameplayPawn::InitFluids()
 
 void AGameplayPawn::InitTerrain()
 {
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < width; i++)
 	{
-		for (int j = 0; j < 20; j++)
-		{
-			if (i < 20 || i > 80)
-			{
-				b2BodyDef bodyDef;
-				bodyDef.type = b2_staticBody;
-				bodyDef.position.Set((float)i - 48, (float)-j);
-				body = world.CreateBody(&bodyDef);
-				b2PolygonShape box;
-				box.SetAsBox(0.5f, 0.5f);
-				b2FixtureDef fixtureDef;
-				fixtureDef.shape = &box;
-				fixtureDef.density = 1.0f;
-				fixtureDef.friction = 0.3f;
-				body->CreateFixture(&fixtureDef);
-				body = world.CreateBody(&bodyDef);
-				FVector2D CurrentCoord(i, j);
-				TerrainBodies.Add(CurrentCoord,body);
-				int32 SpriteIndex = GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(i*SCALE_FACTOR - 480, -j*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
-					GroundSprite->GetSprite(), true, FColor::White);
-				TerrainInstanceIndices.Add(CurrentCoord, SpriteIndex);
-			}
-		}
-	}
-	for (int i = 0; i < 100; i++)
-	{
-		for (int j = 20; j < 100; j++)
+		for (int j = 0; j < height; j++)
 		{
 			b2BodyDef bodyDef;
 			bodyDef.type = b2_staticBody;
-			bodyDef.position.Set((float)i - 48, (float)-j);
-			body = world.CreateBody(&bodyDef);
+			bodyDef.position.Set(GridToWorldX(i), GridToWorldY(j));
 			b2PolygonShape box;
-			box.SetAsBox(0.5f, 0.5f);
+			box.SetAsBox(spacing/1.9f, spacing/1.9f);
 			b2FixtureDef fixtureDef;
 			fixtureDef.shape = &box;
 			fixtureDef.density = 1.0f;
 			fixtureDef.friction = 0.3f;
-			body->CreateFixture(&fixtureDef);
 			body = world.CreateBody(&bodyDef);
-			TerrainBodies.Add(FVector2D(i, j), body);
+			body->CreateFixture(&fixtureDef);
+			body->SetActive(false);
 			FVector2D CurrentCoord(i, j);
-			TerrainBodies.Add(CurrentCoord, body);
-			int32 SpriteIndex = GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(i*SCALE_FACTOR - 480, -j*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
+			TerrainBodies[i][j] = body;
+			int32 SpriteIndex = GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(body->GetPosition().x*SCALE_FACTOR, body->GetPosition().y*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
 				GroundSprite->GetSprite(), true, FColor::White);
-			TerrainInstanceIndices.Add(CurrentCoord, SpriteIndex);
+			TerrainInstanceIndices[i][j] = SpriteIndex;
 		}
 	}
-}
-
-void AGameplayPawn::LFCleanUp()
-{
-	world.DestroyParticleSystem(particleSystem);
-	b2Body* bodies = world.GetBodyList();
-	while (bodies != NULL)
-	{
-		world.DestroyBody(bodies);
-		bodies = bodies->GetNext();
-	}
+	DestroySquare(FVector2D(0, 0), 5);
+	DestroySquare(FVector2D(0, -20), 5);
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -142,5 +152,142 @@ void AGameplayPawn::UpdateLF(float DeltaTime)
 	{
 		GroupedFluidSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(vs[i].x*SCALE_FACTOR, vs[i].y*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
 			FluidSprite->GetSprite(), true, FColor::White);
+	}
+}
+
+FVector2D AGameplayPawn::GetMouseWorldPosition()
+{
+	UWorld* TestWorld = GetWorld();
+	if (TestWorld)
+	{
+		APlayerController* PlayerController = TestWorld->GetFirstPlayerController();
+		FVector2D MousePos = FVector2D(0, 0);
+		FVector WorldPos = FVector(MousePos.X, MousePos.Y, 0);
+		FVector Dir = FVector(0, 0, 0);
+		if (PlayerController != nullptr)
+		{
+			PlayerController->GetMousePosition(MousePos.X, MousePos.Y);
+			PlayerController->DeprojectMousePositionToWorld(WorldPos, Dir);
+		}
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::SanitizeFloat(WorldPos.X));
+		return FVector2D((int)(WorldPos.X/SCALE_FACTOR), (int)(WorldPos.Y/SCALE_FACTOR));
+	}
+	return FVector2D::ZeroVector;
+}
+
+void AGameplayPawn::SetLMBPressed()
+{
+	LMBPressed = true;
+}
+
+void AGameplayPawn::SetLMBReleased()
+{
+	LMBPressed = false;
+}
+
+void AGameplayPawn::DestroySquare(FVector2D worldCoord, float r)
+{
+	int nx = WorldToGridX(worldCoord.X);
+	int ny = WorldToGridY(worldCoord.Y);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
+	int nr = r / spacing;
+	for (int i = nx - nr; i <= nx + nr; i++) {
+		for (int j = ny - nr; j <= ny + nr; j++) {
+			if (i >= 0 && i < width && j >= 0 && j < height)
+				RemoveAtIndex(i, j);
+		}
+	}
+	nr++;
+	for (int i = nx - nr; i <= nx + nr; i++) {
+		for (int j = ny - nr; j <= ny + nr; j++) {
+			if (i >= 0 && i < width && j >= 0 && j < height)
+				UpdatePos(i, j);
+		}
+	}
+}
+
+int AGameplayPawn::WorldToGridX(int x)
+{
+	return (x - gridX) / spacing;
+}
+
+int AGameplayPawn::WorldToGridY(int y)
+{
+	return (y - gridY) / spacing;
+}
+
+float AGameplayPawn::GridToWorldX(int x)
+{
+	return x * spacing +gridX;
+}
+
+float AGameplayPawn::GridToWorldY(int y)
+{
+	return y * spacing +gridY;
+}
+
+void AGameplayPawn::UpdatePos(int x, int y)
+{
+	FVector2D coord(x,y);
+	bool isInBoxSet = grid[x][y] != E_TERRAIN;
+	if (grid[x][y] != E_TERRAIN) {
+		int sumAdjacent = 0;
+		for (int i = 0; i < 8; i++) {
+			if (grid[x + dX[i]][y + dY[i]] != E_TERRAIN)
+				sumAdjacent++;
+		}
+		if (sumAdjacent == 8) {
+			if (isInBoxSet) {
+				DestroyBody(x,y);
+			}
+		}
+		else {
+			if (!isInBoxSet) {
+				CreateBody(x,y);
+			}
+		}
+	}
+	else if (isInBoxSet) {
+		DestroyBody(x,y);
+	}
+}
+
+void AGameplayPawn::DestroyBody(int x, int y)
+{
+	if (boxSet.Find(FVector2D(x, y)) != NULL)
+		boxSet.Remove(FVector2D(x, y));
+	TerrainBodies[x][y]->SetActive(false);
+}
+
+void AGameplayPawn::CreateBody(int x, int y)
+{
+	if (boxSet.Find(FVector2D(x, y)) == NULL)
+		boxSet.Add(FVector2D(x, y));
+	TerrainBodies[x][y]->SetActive(true);
+}
+
+void AGameplayPawn::RemoveAtIndex(int x, int y)
+{
+	grid[x][y] = E_TERRAIN;
+	RemoveSpriteAndUpdate(x, y);
+	TerrainBodies[x][y]->SetActive(false);
+}
+
+void AGameplayPawn::RemoveSpriteAndUpdate(int x, int y)
+{
+	int tmp = TerrainInstanceIndices[x][y];
+	GroupedGroundSprite->RemoveInstance(TerrainInstanceIndices[x][y]);
+	GroupedGroundSprite->GetPerInstanceSpriteData();
+	TerrainInstanceIndices[x][y] = NULL;
+	if (x >= 0 && x < width && y >= 0 && y < height)
+	{
+		for (int i = x; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				if (TerrainInstanceIndices[i][j] > tmp)
+					TerrainInstanceIndices[i][j]--;
+			}
+		}
 	}
 }
