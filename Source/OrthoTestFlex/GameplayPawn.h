@@ -51,7 +51,9 @@ private:
 	void CreateBody(int x, int y);
 	void RemoveAtIndex(int x, int y);
 
-	void RemoveSpriteAndUpdate(int x, int y);
+	void AddSpriteAndUpdate(int x, int y);
+
+	void MakeIndestructible(int x, int y);
 
 	//The sprite used for the fluid particles
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fluid", meta = (AllowPrivateAccess = "true"))
@@ -61,11 +63,22 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
 	class UPaperSpriteComponent* GroundSprite;
 
+	//The sprite used for the indestructible terrain
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* IDSprite;
+
+	//Background sprite
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Background", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* BGSprite;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fluid", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* GroupedFluidSprite;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* GroupedGroundSprite;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Indestructible", meta = (AllowPrivateAccess = "true"))
+	class UPaperGroupedSpriteComponent* GroupedIDSprite;
 
 	//TMap<FVector2D, class b2Body*> TerrainBodies;
 
@@ -78,10 +91,10 @@ private:
 
 
 
-	static const int gridX = -50;
-	static const int gridY = -100;
-	static const int width = 100;
-	static const int height = 100;
+	static const int gridX = -200;
+	static const int gridY = -125;
+	static const int width = 400;
+	static const int height = 150;
 	static const int spacing = 1;
 	char grid[width][height];
 	class b2Body* TerrainBodies[width][height];

@@ -33,6 +33,11 @@ AGameplayPawn::AGameplayPawn()
 
 	FluidSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("FluidSprite"));
 	GroupedFluidSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("GroupedFluidSprite"));
+	IDSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("IndestructibleSprite"));
+	GroupedIDSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("GroupedIndestrubtibleSprite"));
+	BGSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("BackgroundSprite"));
+	BGSprite->SetRelativeLocation(FVector(0.0f, -255.0f, 0.0f));
+	BGSprite->SetWorldRotation(FRotator(0.0f, 0.0f, 90.0f));
 }
 
 // Called when the game starts or when spawned
@@ -51,27 +56,15 @@ void AGameplayPawn::Destroyed()
 	Super::Destroyed();
 	GroupedFluidSprite->ClearInstances();
 	GroupedGroundSprite->ClearInstances();
-	/*
-	body = nullptr;
-	b2Body* bodies = world.GetBodyList();
-	while (bodies != nullptr)
-	{
-		world.DestroyBody(bodies);
-		bodies = bodies->GetNext();
-	}
-	world.DestroyParticleSystem(particleSystem);
-	*/
 	world.~b2World();
-	delete GroupedFluidSprite;
-	delete GroupedGroundSprite;
+	//delete GroupedFluidSprite;
+	//delete GroupedGroundSprite;
 }
 
 // Called every frame
 void AGameplayPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-	timer += DeltaTime;
-	UpdateLF(DeltaTime);
 	if (LMBPressed)
 	{
 		FVector2D mousePos = GetMouseWorldPosition();
@@ -79,16 +72,9 @@ void AGameplayPawn::Tick( float DeltaTime )
 		int ny = WorldToGridY(mousePos.Y);
 		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
 		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, GetMouseWorldPosition().ToString());
-		LMBPressed = false;
-		//DestroySquare(GetMouseWorldPosition(), 5);
+		DestroySquare(GetMouseWorldPosition(), 5);
 	}
-	/*
-	if (timer > 10.0f)
-	{
-		DestroySquare(FVector2D(0, -30), 3);
-		timer = 0.0f;
-	}
-	*/
+	UpdateLF(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -116,6 +102,12 @@ void AGameplayPawn::InitFluids()
 
 void AGameplayPawn::InitTerrain()
 {
+	b2PolygonShape box;
+	box.SetAsBox(spacing / 1.9f, spacing / 1.9f);
+	b2FixtureDef fixtureDef;
+	fixtureDef.shape = &box;
+	fixtureDef.density = 1.0f;
+	fixtureDef.friction = 0.3f;
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
@@ -123,24 +115,21 @@ void AGameplayPawn::InitTerrain()
 			b2BodyDef bodyDef;
 			bodyDef.type = b2_staticBody;
 			bodyDef.position.Set(GridToWorldX(i), GridToWorldY(j));
-			b2PolygonShape box;
-			box.SetAsBox(spacing/1.9f, spacing/1.9f);
-			b2FixtureDef fixtureDef;
-			fixtureDef.shape = &box;
-			fixtureDef.density = 1.0f;
-			fixtureDef.friction = 0.3f;
 			body = world.CreateBody(&bodyDef);
 			body->CreateFixture(&fixtureDef);
-			body->SetActive(false);
+			body->SetActive(true);
 			FVector2D CurrentCoord(i, j);
 			TerrainBodies[i][j] = body;
-			int32 SpriteIndex = GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(body->GetPosition().x*SCALE_FACTOR, body->GetPosition().y*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
-				GroundSprite->GetSprite(), true, FColor::White);
-			TerrainInstanceIndices[i][j] = SpriteIndex;
 		}
 	}
-	DestroySquare(FVector2D(0, 0), 5);
-	DestroySquare(FVector2D(0, -20), 5);
+	DestroySquare(FVector2D(0, 30), 25);
+	for (int x = 195; x < 205; x++)
+	{
+		for (int y = 95; y < 105; y++)
+		{
+			MakeIndestructible(x, y);
+		}
+	}
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -169,7 +158,6 @@ FVector2D AGameplayPawn::GetMouseWorldPosition()
 			PlayerController->GetMousePosition(MousePos.X, MousePos.Y);
 			PlayerController->DeprojectMousePositionToWorld(WorldPos, Dir);
 		}
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::SanitizeFloat(WorldPos.X));
 		return FVector2D((int)(WorldPos.X/SCALE_FACTOR), (int)(WorldPos.Y/SCALE_FACTOR));
 	}
 	return FVector2D::ZeroVector;
@@ -268,26 +256,31 @@ void AGameplayPawn::CreateBody(int x, int y)
 
 void AGameplayPawn::RemoveAtIndex(int x, int y)
 {
-	grid[x][y] = E_TERRAIN;
-	RemoveSpriteAndUpdate(x, y);
-	TerrainBodies[x][y]->SetActive(false);
+	if (grid[x][y] == D_TERRAIN)
+	{
+		AddSpriteAndUpdate(x, y);
+		grid[x][y] = E_TERRAIN;
+		TerrainBodies[x][y]->SetActive(false);
+	}
 }
 
-void AGameplayPawn::RemoveSpriteAndUpdate(int x, int y)
+void AGameplayPawn::AddSpriteAndUpdate(int x, int y)
 {
-	int tmp = TerrainInstanceIndices[x][y];
-	GroupedGroundSprite->RemoveInstance(TerrainInstanceIndices[x][y]);
-	GroupedGroundSprite->GetPerInstanceSpriteData();
-	TerrainInstanceIndices[x][y] = NULL;
+	if (grid[x][y] == D_TERRAIN)
+	{
+		GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(GridToWorldX(x)*SCALE_FACTOR, GridToWorldY(y)*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
+			GroundSprite->GetSprite(), true, FColor::White);
+		TerrainBodies[x][y]->SetActive(false);
+	}
+}
+
+void AGameplayPawn::MakeIndestructible(int x, int y)
+{
 	if (x >= 0 && x < width && y >= 0 && y < height)
 	{
-		for (int i = x; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (TerrainInstanceIndices[i][j] > tmp)
-					TerrainInstanceIndices[i][j]--;
-			}
-		}
+		grid[x][y] = UD_TERRAIN;
+		GroupedIDSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(GridToWorldX(x)*SCALE_FACTOR, GridToWorldY(y)*SCALE_FACTOR, -10.0f), FVector(1.0f, 1.0f, 1.0f)),
+			IDSprite->GetSprite(), true, FColor::White);
+		TerrainBodies[x][y]->SetActive(true);
 	}
 }
