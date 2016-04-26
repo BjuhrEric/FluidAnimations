@@ -14,10 +14,11 @@ public:
 	// Sets default values for this pawn's properties
 	AGameplayPawn();
 
+	UFUNCTION(BlueprintCallable, Category = "Cleanup")
+	void CleanUpLF();
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	virtual void Destroyed() override;
 	
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
@@ -80,10 +81,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Indestructible", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* GroupedIDSprite;
 
-	//TMap<FVector2D, class b2Body*> TerrainBodies;
-
-	//TMap<FVector2D, int32> TerrainInstanceIndices;
-
 	//The scaling used to translate LiquidFun coordinates to world space
 	const float SCALE_FACTOR = 10.0f;
 
@@ -91,10 +88,10 @@ private:
 
 
 
-	static const int gridX = -200;
-	static const int gridY = -125;
-	static const int width = 400;
-	static const int height = 150;
+	static const int gridX = -50;
+	static const int gridY = -465;
+	static const int width = 101;
+	static const int height = 650;
 	static const int spacing = 1;
 	char grid[width][height];
 	class b2Body* TerrainBodies[width][height];

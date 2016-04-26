@@ -36,7 +36,7 @@ AGameplayPawn::AGameplayPawn()
 	IDSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("IndestructibleSprite"));
 	GroupedIDSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("GroupedIndestrubtibleSprite"));
 	BGSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("BackgroundSprite"));
-	BGSprite->SetRelativeLocation(FVector(0.0f, -255.0f, 0.0f));
+	BGSprite->SetRelativeLocation(FVector(0.0f, -2150.0f, 0.0f));
 	BGSprite->SetWorldRotation(FRotator(0.0f, 0.0f, 90.0f));
 }
 
@@ -48,17 +48,19 @@ void AGameplayPawn::BeginPlay()
 	GroupedGroundSprite->ClearInstances();
 	InitTerrain();
 	InitFluids();
-	//GroupedGroundSprite->RemoveInstance(*TerrainInstanceIndices.Find(FVector2D(1, 1)));
 }
 
-void AGameplayPawn::Destroyed()
+void AGameplayPawn::CleanUpLF()
 {
-	Super::Destroyed();
-	GroupedFluidSprite->ClearInstances();
-	GroupedGroundSprite->ClearInstances();
-	world.~b2World();
-	//delete GroupedFluidSprite;
-	//delete GroupedGroundSprite;
+	world.DestroyParticleSystem(particleSystem);
+	particleSystem = nullptr;
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			world.DestroyBody(TerrainBodies[i][j]);
+		}
+	}
 }
 
 // Called every frame
