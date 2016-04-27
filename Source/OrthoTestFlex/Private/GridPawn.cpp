@@ -114,29 +114,6 @@ FVector2D AGridPawn::GetMouseWorldPosition()
 	return FVector2D::ZeroVector;
 }
 
-void AGridPawn::DestroyTerrainLine(int x1, int y1, int x2, int y2, int l) {
-	int xl = l;
-	if (x1 > x2)
-		xl = -xl;
-	if (y1 < y2)
-		xl = -xl;
-	
-	int maxX = fmax(x1, x2) + l;
-	int maxY = fmax(x1, x2) + l;
-	int minX = fmin(x1, x2) - l;
-	int minY = fmin(x1, x2) - l;
-	if (x1 == x2)
-		x1++;
-	float K = ((y2 - y1) / (float)(x2 - x1));
-	for (int i = minX; i <= maxX; i++) {
-		int minLine = (int)(y1 + K * (i - x1 + xl)) - l;
-		int maxLine = (int)(y1 + K * (i - x1 - xl)) + l;
-		for (int j = fmax(minY, minLine); j <= fmin(maxY, maxLine); j++) {
-			DestroyCube(i, j);
-		}
-	}
-}
-
 void AGridPawn::DestroyCube(int x, int y) {
 	if (x >= 0 && x < width && y >= 0 && y < height) {
 		int64 ptr = gt->getCell(x, y);
