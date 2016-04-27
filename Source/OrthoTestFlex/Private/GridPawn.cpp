@@ -39,24 +39,24 @@ void AGridPawn::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 	UWorld* World = GetWorld();
 	if (World && mouseDown) {
-		/*
-		 * Do stuff here
-		 */
 		FVector2D MousePos = GetMouseWorldPosition();
-		int GridX = MousePos.X;
-		int GridY = MousePos.Y;
+		int GridX = round(MousePos.X);
+		int GridY = round(MousePos.Y);
+		int MaxX = fmax(X, GridX);
+		int MinX = fmin(X, GridX);
+		int MaxY = fmax(Y, GridY);
+		int MinY = fmin(Y, GridY);
 		
-		UE_LOG(LogTemp, Warning, TEXT("(%d, %d)"), GridX, GridY);
-		if (GridX >= 0 && GridX < width && GridY >= 0 && GridY < height)
-		{
-			int64 ptr = gt->getCell(GridX, GridY);
-			if (ptr)
-			{
-				ADestructibleCubeActor* Cube = (ADestructibleCubeActor*)ptr;
-				Cube->Destroy();
-				gt->setCell(GridX, GridY, NULL);
+		
+		if (X >= 0 && X < width && Y >= 0 && Y < height) {
+			for (int x = MinX - 1; x < MaxX + 1; x++) {
+				for (int y = MinY - 1; y < MaxY + 1; y++) {
+					DestroyCube(x, y);
+				}
 			}
 		}
+		X = GridX;
+		Y = GridY;
 	}
 }
 
@@ -67,7 +67,6 @@ void AGridPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 
 	InputComponent->BindAction("Dig", IE_Pressed, this, &AGridPawn::OnClick);
 	InputComponent->BindAction("Dig", IE_Released, this, &AGridPawn::OnRelease);
-	UE_LOG(LogTemp, Warning, TEXT("Setup input"));
 }
 
 void AGridPawn::spawnCubes()
@@ -90,12 +89,10 @@ void AGridPawn::spawnCubes()
 
 void AGridPawn::OnClick() {
 	mouseDown = true;
-	UE_LOG(LogTemp, Warning, TEXT("MouseDown"));
 }
 
 void AGridPawn::OnRelease() {
 	mouseDown = false;
-	UE_LOG(LogTemp, Warning, TEXT("!MouseDown"));
 }
 
 FVector2D AGridPawn::GetMouseWorldPosition()
@@ -115,4 +112,39 @@ FVector2D AGridPawn::GetMouseWorldPosition()
 		return FVector2D((int)(WorldPos.Y / SCALE_FACTOR), (int)(WorldPos.Z / SCALE_FACTOR));
 	}
 	return FVector2D::ZeroVector;
+}
+
+void AGridPawn::DestroyTerrainLine(int x1, int y1, int x2, int y2, int l) {
+	int xl = l;
+	if (x1 > x2)
+		xl = -xl;
+	if (y1 < y2)
+		xl = -xl;
+	
+	int maxX = fmax(x1, x2) + l;
+	int maxY = fmax(x1, x2) + l;
+	int minX = fmin(x1, x2) - l;
+	int minY = fmin(x1, x2) - l;
+	if (x1 == x2)
+		x1++;
+	float K = ((y2 - y1) / (float)(x2 - x1));
+	for (int i = minX; i <= maxX; i++) {
+		int minLine = (int)(y1 + K * (i - x1 + xl)) - l;
+		int maxLine = (int)(y1 + K * (i - x1 - xl)) + l;
+		for (int j = fmax(minY, minLine); j <= fmin(maxY, maxLine); j++) {
+			DestroyCube(i, j);
+		}
+	}
+}
+
+void AGridPawn::DestroyCube(int x, int y) {
+	if (x >= 0 && x < width && y >= 0 && y < height) {
+		int64 ptr = gt->getCell(x, y);
+		if (ptr)
+		{
+			ADestructibleCubeActor* Cube = (ADestructibleCubeActor*)ptr;
+			Cube->Destroy();
+			gt->setCell(x, y, NULL);
+		}
+	}
 }

@@ -31,7 +31,7 @@ public:
 
 private:
 	bool mouseDown;
-	float x, y;
+	float X = -1, Y = -1;
 	GridTerrain* gt = NULL;
 	TSubclassOf<class ADestructibleCubeActor> MyItemBlueprint;
 	const float SCALE_FACTOR = 100.0f;
@@ -39,4 +39,6 @@ private:
 	inline void OnClick();
 	inline void OnRelease();
 	inline FVector2D GetMouseWorldPosition();
+	inline void DestroyTerrainLine(int x1, int y1, int x2, int y2, int l);
+	inline void DestroyCube(int x, int y);
 };
