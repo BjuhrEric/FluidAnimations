@@ -34,9 +34,9 @@ private:
 	float x, y;
 	GridTerrain* gt = NULL;
 	TSubclassOf<class ADestructibleCubeActor> MyItemBlueprint;
+	const float SCALE_FACTOR = 100.0f;
 
 	inline void OnClick();
 	inline void OnRelease();
-	inline void SetMouseX(float x);
-	inline void SetMouseY(float y);
+	inline FVector2D GetMouseWorldPosition();
 };

@@ -4,7 +4,6 @@
 #include "GridPawn.h"
 #include "DestructibleCubeActor.h"
 
-
 // Sets default values
 AGridPawn::AGridPawn()
 {
@@ -31,16 +30,33 @@ void AGridPawn::init()
 		free(gt);
 	}
 	gt = new GridTerrain(width, height);
+	UE_LOG(LogTemp, Warning, TEXT("GridPawn Init Complete"));
 }
 
 // Called every frame
 void AGridPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-	if (mouseDown) {
+	UWorld* World = GetWorld();
+	if (World && mouseDown) {
 		/*
 		 * Do stuff here
 		 */
+		FVector2D MousePos = GetMouseWorldPosition();
+		int GridX = MousePos.X;
+		int GridY = MousePos.Y;
+		
+		UE_LOG(LogTemp, Warning, TEXT("(%d, %d)"), GridX, GridY);
+		if (GridX >= 0 && GridX < width && GridY >= 0 && GridY < height)
+		{
+			int64 ptr = gt->getCell(GridX, GridY);
+			if (ptr)
+			{
+				ADestructibleCubeActor* Cube = (ADestructibleCubeActor*)ptr;
+				Cube->Destroy();
+				gt->setCell(GridX, GridY, NULL);
+			}
+		}
 	}
 }
 
@@ -49,10 +65,9 @@ void AGridPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
-	InputComponent->BindAction("LeftMouse", IE_Pressed, this, &AGridPawn::OnClick);
-	InputComponent->BindAction("LeftMouse", IE_Released, this, &AGridPawn::OnRelease);
-	InputComponent->BindAxis("MouseX", this, &AGridPawn::SetMouseX);
-	InputComponent->BindAxis("MouseY", this, &AGridPawn::SetMouseY);
+	InputComponent->BindAction("Dig", IE_Pressed, this, &AGridPawn::OnClick);
+	InputComponent->BindAction("Dig", IE_Released, this, &AGridPawn::OnRelease);
+	UE_LOG(LogTemp, Warning, TEXT("Setup input"));
 }
 
 void AGridPawn::spawnCubes()
@@ -75,16 +90,29 @@ void AGridPawn::spawnCubes()
 
 void AGridPawn::OnClick() {
 	mouseDown = true;
+	UE_LOG(LogTemp, Warning, TEXT("MouseDown"));
 }
 
 void AGridPawn::OnRelease() {
 	mouseDown = false;
+	UE_LOG(LogTemp, Warning, TEXT("!MouseDown"));
 }
 
-void AGridPawn::SetMouseX(float x) {
-	AGridPawn::x = x;
-}
-
-void AGridPawn::SetMouseY(float y) {
-	AGridPawn::y = y;
+FVector2D AGridPawn::GetMouseWorldPosition()
+{
+	UWorld* TestWorld = GetWorld();
+	if (TestWorld)
+	{
+		APlayerController* PlayerController = TestWorld->GetFirstPlayerController();
+		FVector2D MousePos = FVector2D(0, 0);
+		FVector WorldPos = FVector(MousePos.X, MousePos.Y, 0);
+		FVector Dir = FVector(0, 0, 0);
+		if (PlayerController != nullptr)
+		{
+			PlayerController->GetMousePosition(MousePos.X, MousePos.Y);
+			PlayerController->DeprojectMousePositionToWorld(WorldPos, Dir);
+		}
+		return FVector2D((int)(WorldPos.Y / SCALE_FACTOR), (int)(WorldPos.Z / SCALE_FACTOR));
+	}
+	return FVector2D::ZeroVector;
 }
