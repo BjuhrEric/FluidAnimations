@@ -33,6 +33,7 @@ private:
 	bool mouseDown;
 	float X = -1, Y = -1;
 	GridTerrain* gt = NULL;
+	TArray<int64, FDefaultAllocator>* DestroyedCubes = NULL;
 	TSubclassOf<class ADestructibleCubeActor> MyItemBlueprint;
 	const float SCALE_FACTOR = 100.0f;
 

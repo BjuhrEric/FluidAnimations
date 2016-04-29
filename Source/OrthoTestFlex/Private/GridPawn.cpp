@@ -29,7 +29,15 @@ void AGridPawn::init()
 		gt->dispose();
 		free(gt);
 	}
+	if (DestroyedCubes) {
+		for (auto CubeIt = DestroyedCubes->CreateConstIterator(); CubeIt; ++CubeIt) {
+			ADestructibleCubeActor* Cube = (ADestructibleCubeActor*) *CubeIt;
+			Cube->Destroy();
+		}
+		free(DestroyedCubes);
+	}
 	gt = new GridTerrain(width, height);
+	DestroyedCubes = new TArray<int64>();
 	UE_LOG(LogTemp, Warning, TEXT("GridPawn Init Complete"));
 }
 
@@ -120,8 +128,10 @@ void AGridPawn::DestroyCube(int x, int y) {
 		if (ptr)
 		{
 			ADestructibleCubeActor* Cube = (ADestructibleCubeActor*)ptr;
-			Cube->Destroy();
+			Cube->GetRootComponent()->SetVisibility(false, true);
+			Cube->DisableComponentsSimulatePhysics();
 			gt->setCell(x, y, NULL);
+			DestroyedCubes->Add((int64)Cube);
 		}
 	}
 }
