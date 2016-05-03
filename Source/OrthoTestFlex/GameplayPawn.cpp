@@ -125,13 +125,6 @@ void AGameplayPawn::InitTerrain()
 		}
 	}
 	DestroySquare(FVector2D(0, 30), 25);
-	for (int x = 195; x < 205; x++)
-	{
-		for (int y = 95; y < 105; y++)
-		{
-			MakeIndestructible(x, y);
-		}
-	}
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -141,7 +134,7 @@ void AGameplayPawn::UpdateLF(float DeltaTime)
 	GroupedFluidSprite->ClearInstances();
 	for (int i = 0; i < particleSystem->GetParticleCount(); i++)
 	{
-		GroupedFluidSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(vs[i].x*SCALE_FACTOR, vs[i].y*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
+		GroupedFluidSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(vs[i].x*SCALE_FACTOR, vs[i].y*SCALE_FACTOR, -5.0f), FVector(1.0f, 1.0f, 1.0f)),
 			FluidSprite->GetSprite(), true, FColor::White);
 	}
 }
