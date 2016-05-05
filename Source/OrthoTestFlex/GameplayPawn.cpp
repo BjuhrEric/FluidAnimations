@@ -14,6 +14,12 @@ b2Body* body;
 UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2ParticleSystem* particleSystem;
 
+const int NumFloaters = 5;
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
+b2Body* FloatingBody[NumFloaters];
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
+b2Body* WinCheckBody;
+
 
 const char D_TERRAIN = 0, E_TERRAIN = 1, UD_TERRAIN = 2;
 const int dX[] = { 0, 1, 1, 1, 0, -1, -1, -1 };
@@ -38,6 +44,8 @@ AGameplayPawn::AGameplayPawn()
 	BGSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("BackgroundSprite"));
 	BGSprite->SetRelativeLocation(FVector(0.0f, -2150.0f, 0.0f));
 	BGSprite->SetWorldRotation(FRotator(0.0f, 0.0f, 90.0f));
+	FloatingSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("FloatingSprite"));
+	GroupedFloatingSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("GroupedFloatingSprite"));
 }
 
 // Called when the game starts or when spawned
@@ -46,8 +54,11 @@ void AGameplayPawn::BeginPlay()
 	Super::BeginPlay();
 	GroupedFluidSprite->ClearInstances();
 	GroupedGroundSprite->ClearInstances();
+	GroupedFloatingSprite->ClearInstances();
 	InitTerrain();
 	InitFluids();
+	InitFloating();
+	InitWinning();
 }
 
 void AGameplayPawn::CleanUpLF()
@@ -61,22 +72,33 @@ void AGameplayPawn::CleanUpLF()
 			world.DestroyBody(TerrainBodies[i][j]);
 		}
 	}
+	for (int i = 0; i < NumFloaters; i++)
+	{
+		world.DestroyBody(FloatingBody[i]);
+	}
 }
 
 // Called every frame
 void AGameplayPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+	GroupedFloatingSprite->ClearInstances();
 	if (LMBPressed)
 	{
 		FVector2D mousePos = GetMouseWorldPosition();
 		int nx = WorldToGridX(mousePos.X);
 		int ny = WorldToGridY(mousePos.Y);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
-		GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, GetMouseWorldPosition().ToString());
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, GetMouseWorldPosition().ToString());
 		DestroySquare(GetMouseWorldPosition(), 5);
 	}
 	UpdateLF(DeltaTime);
+	for (int i = 0; i < NumFloaters; i++)
+	{
+		GroupedFloatingSprite->AddInstance(FTransform(FRotator(0.0f, FMath::RadiansToDegrees(FloatingBody[i]->GetAngle()), 90.0f), FVector(FloatingBody[i]->GetPosition().x*SCALE_FACTOR, 
+			FloatingBody[i]->GetPosition().y*SCALE_FACTOR, -7.0f), FVector(1.0f, 1.0f, 1.0f)), FloatingSprite->GetSprite(), true, FColor::White);
+	}
+	UpdateWinCheck();
 }
 
 // Called to bind functionality to input
@@ -95,6 +117,7 @@ void AGameplayPawn::InitFluids()
 	box.SetAsBox(25.0f, 25.0f);
 	b2ParticleSystemDef partSysDef;
 	partSysDef.radius = 0.8f;
+	partSysDef.density = 1.0;
 	particleSystem = world.CreateParticleSystem(&partSysDef);
 	b2ParticleGroupDef partGrDef;
 	partGrDef.position.Set(0.0f, 30.0f);
@@ -125,6 +148,54 @@ void AGameplayPawn::InitTerrain()
 		}
 	}
 	DestroySquare(FVector2D(0, 30), 25);
+}
+
+void AGameplayPawn::InitFloating()
+{
+	b2CircleShape circle;
+	circle.m_radius = 1.0f;
+	b2FixtureDef fixtureDef;
+	fixtureDef.shape = &circle;
+	fixtureDef.density = 0.3f;
+	fixtureDef.friction = 0.3f;
+	for (int i = 0; i < NumFloaters; i++)
+	{
+		int x = (int)FMath::RandRange(3, width - 5);
+		int y = (int)FMath::RandRange(WinHeight + 10, 500);
+		DestroySquare(FVector2D(GridToWorldX(x), GridToWorldY(y)), 3);
+		b2BodyDef bDef;
+		bDef.type = b2_dynamicBody;
+		bDef.position.Set(GridToWorldX(x), GridToWorldY(y));
+		bDef.fixedRotation = false;
+		FloatingBody[i] = world.CreateBody(&bDef);
+		FloatingBody[i]->CreateFixture(&fixtureDef);
+	}
+}
+
+void AGameplayPawn::InitWinning()
+{
+	for (int i = 0; i < width; i++)
+	{
+		MakeIndestructible(i, 0);
+		DestroySquare(FVector2D(GridToWorldX(i), GridToWorldY(15)), 15);
+	}
+	for (int i = 1; i < WinHeight; i++)
+	{
+		MakeIndestructible(0, i);
+		MakeIndestructible(width - 1, i);
+	}
+}
+
+void AGameplayPawn::UpdateWinCheck()
+{
+	int numInGoal = 0;
+	for (int i = 0; i < NumFloaters; i++)
+	{
+		b2Vec2 pos = FloatingBody[i]->GetPosition();
+		if (WorldToGridX(pos.x) >= 0 && WorldToGridX(pos.x) < width - 1 && WorldToGridY(pos.y) >= 0 && WorldToGridY(pos.y) < WinHeight)
+			numInGoal++;
+	}
+	GEngine->AddOnScreenDebugMessage(0, 1, FColor::Green, "Balls in goal: " + FString::FromInt(numInGoal));
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -172,7 +243,6 @@ void AGameplayPawn::DestroySquare(FVector2D worldCoord, float r)
 {
 	int nx = WorldToGridX(worldCoord.X);
 	int ny = WorldToGridY(worldCoord.Y);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
 	int nr = r / spacing;
 	for (int i = nx - nr; i <= nx + nr; i++) {
 		for (int j = ny - nr; j <= ny + nr; j++) {

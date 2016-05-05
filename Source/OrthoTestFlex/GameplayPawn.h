@@ -31,6 +31,10 @@ private:
 
 	void InitTerrain();
 
+	void InitFloating();
+
+	void InitWinning();
+
 	void LFCleanUp();
 
 	void SetLMBPressed();
@@ -38,6 +42,8 @@ private:
 	void SetLMBReleased();
 
 	void UpdateLF(float DeltaTime);
+
+	void UpdateWinCheck();
 
 	FVector2D GetMouseWorldPosition();
 
@@ -68,6 +74,9 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ground", meta = (AllowPrivateAccess = "true"))
 	class UPaperSpriteComponent* IDSprite;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Floating", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* FloatingSprite;
+
 	//Background sprite
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Background", meta = (AllowPrivateAccess = "true"))
 	class UPaperSpriteComponent* BGSprite;
@@ -81,13 +90,15 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Indestructible", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* GroupedIDSprite;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Floating", meta = (AllowPrivateAccess = "true"))
+	class UPaperGroupedSpriteComponent* GroupedFloatingSprite;
+
 	//The scaling used to translate LiquidFun coordinates to world space
 	const float SCALE_FACTOR = 10.0f;
 
 	bool LMBPressed = false;
 
-
-
+	int WinHeight = 31;
 	static const int gridX = -50;
 	static const int gridY = -465;
 	static const int width = 101;
