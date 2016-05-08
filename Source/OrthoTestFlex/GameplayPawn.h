@@ -17,6 +17,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Cleanup")
 	void CleanUpLF();
 
+	UFUNCTION(BlueprintCallable, Category = "StartGame")
+	float GetCameraStop();
+
+	UFUNCTION(BlueprintCallable, Category = "GetScore")
+	int32 GetScore();
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
@@ -108,4 +114,12 @@ private:
 	class b2Body* TerrainBodies[width][height];
 	TSet<FVector2D> boxSet;
 	int32 TerrainInstanceIndices[width][height];
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Score", meta = (AllowPrivateAccess = "true"))
+	int32 numInGoal;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Score", meta = (AllowPrivateAccess = "true"))
+	class UPaperSpriteComponent* ScoreSprite;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Score", meta = (AllowPrivateAccess = "true"))
+	class UPaperGroupedSpriteComponent* ScoreGroupedSprite;
 };

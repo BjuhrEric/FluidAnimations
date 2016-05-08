@@ -6,6 +6,7 @@
 #include "GameplayPawn.h"
 #include "liquidfun.h"
 
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2Vec2 gravity(0.0f, -80.0f);
 UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2World world(gravity);
@@ -17,8 +18,6 @@ b2ParticleSystem* particleSystem;
 const int NumFloaters = 5;
 UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2Body* FloatingBody[NumFloaters];
-UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
-b2Body* WinCheckBody;
 
 
 const char D_TERRAIN = 0, E_TERRAIN = 1, UD_TERRAIN = 2;
@@ -46,15 +45,14 @@ AGameplayPawn::AGameplayPawn()
 	BGSprite->SetWorldRotation(FRotator(0.0f, 0.0f, 90.0f));
 	FloatingSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("FloatingSprite"));
 	GroupedFloatingSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("GroupedFloatingSprite"));
+	ScoreSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("ScoreSprite"));
+	ScoreGroupedSprite = CreateDefaultSubobject<UPaperGroupedSpriteComponent>(TEXT("ScoreGroupedSprite"));
 }
 
 // Called when the game starts or when spawned
 void AGameplayPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	GroupedFluidSprite->ClearInstances();
-	GroupedGroundSprite->ClearInstances();
-	GroupedFloatingSprite->ClearInstances();
 	InitTerrain();
 	InitFluids();
 	InitFloating();
@@ -63,18 +61,29 @@ void AGameplayPawn::BeginPlay()
 
 void AGameplayPawn::CleanUpLF()
 {
-	world.DestroyParticleSystem(particleSystem);
-	particleSystem = nullptr;
+	if (particleSystem != nullptr)
+	{
+		world.DestroyParticleSystem(particleSystem);
+		particleSystem = nullptr;
+	}
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
 		{
-			world.DestroyBody(TerrainBodies[i][j]);
+			if (TerrainBodies[i][j] != nullptr)
+			{
+				world.DestroyBody(TerrainBodies[i][j]);
+				TerrainBodies[i][j] = nullptr;
+			}
 		}
 	}
 	for (int i = 0; i < NumFloaters; i++)
 	{
-		world.DestroyBody(FloatingBody[i]);
+		if (FloatingBody[i] != nullptr)
+		{
+			world.DestroyBody(FloatingBody[i]);
+			FloatingBody[i] = nullptr;
+		}
 	}
 }
 
@@ -152,6 +161,8 @@ void AGameplayPawn::InitTerrain()
 
 void AGameplayPawn::InitFloating()
 {
+	int ScoreHeight = SCALE_FACTOR*GridToWorldY(0) - 100;
+
 	b2CircleShape circle;
 	circle.m_radius = 1.0f;
 	b2FixtureDef fixtureDef;
@@ -169,6 +180,9 @@ void AGameplayPawn::InitFloating()
 		bDef.fixedRotation = false;
 		FloatingBody[i] = world.CreateBody(&bDef);
 		FloatingBody[i]->CreateFixture(&fixtureDef);
+
+		ScoreGroupedSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(SCALE_FACTOR*GridToWorldX(width/(NumFloaters*2) + i*width/NumFloaters), ScoreHeight, -5.0f), FVector(1.0f, 1.0f, 1.0f)),
+			ScoreSprite->GetSprite(), true, FColor::White);
 	}
 }
 
@@ -188,14 +202,20 @@ void AGameplayPawn::InitWinning()
 
 void AGameplayPawn::UpdateWinCheck()
 {
-	int numInGoal = 0;
+	numInGoal = 0;
+	int ScoreHeight = SCALE_FACTOR*GridToWorldY(0) - 100;
 	for (int i = 0; i < NumFloaters; i++)
 	{
 		b2Vec2 pos = FloatingBody[i]->GetPosition();
 		if (WorldToGridX(pos.x) >= 0 && WorldToGridX(pos.x) < width - 1 && WorldToGridY(pos.y) >= 0 && WorldToGridY(pos.y) < WinHeight)
 			numInGoal++;
 	}
-	GEngine->AddOnScreenDebugMessage(0, 1, FColor::Green, "Balls in goal: " + FString::FromInt(numInGoal));
+	for (int i = 0; i < numInGoal; i++)
+	{
+		GroupedFloatingSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(SCALE_FACTOR*GridToWorldX(width / (NumFloaters * 2) + i*width / NumFloaters), ScoreHeight, -5.0f), FVector(1.0f, 1.0f, 1.0f)),
+			FloatingSprite->GetSprite(), true, FColor::White);
+	}
+	//GEngine->AddOnScreenDebugMessage(0, 1, FColor::Green, "Balls in goal: " + FString::FromInt(numInGoal));
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -348,4 +368,14 @@ void AGameplayPawn::MakeIndestructible(int x, int y)
 			IDSprite->GetSprite(), true, FColor::White);
 		TerrainBodies[x][y]->SetActive(true);
 	}
+}
+
+float AGameplayPawn::GetCameraStop()
+{
+	return (float)SCALE_FACTOR*GridToWorldY(0);
+}
+
+int32 AGameplayPawn::GetScore()
+{
+	return numInGoal;
 }
