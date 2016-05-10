@@ -41,7 +41,7 @@ private:
 
 	void InitWinning();
 
-	void LFCleanUp();
+	//void SpawnParticle();
 
 	void SetLMBPressed();
 
@@ -53,7 +53,17 @@ private:
 
 	FVector2D GetMouseWorldPosition();
 
-	void DestroySquare(FVector2D worldCoord, float r);
+	void DestroySquare(int nx, int ny, int nr);
+
+	void DestroyLine(int x1, int y1, int x2, int y2, int l);
+
+	void UpdateLine(int x1, int y1, int x2, int y2, int l);
+
+	void DestroyTerrain(FVector2D mousePos);
+
+	int Max(int x1, int x2);
+
+	int Min(int x1, int x2);
 
 	int WorldToGridX(int x);
 	int WorldToGridY(int y);
@@ -104,6 +114,8 @@ private:
 
 	bool LMBPressed = false;
 
+	int PrevMouseX = -32767, PrevMouseY;
+
 	int WinHeight = 31;
 	static const int gridX = -50;
 	static const int gridY = -465;
@@ -122,4 +134,8 @@ private:
 	class UPaperSpriteComponent* ScoreSprite;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Score", meta = (AllowPrivateAccess = "true"))
 	class UPaperGroupedSpriteComponent* ScoreGroupedSprite;
+
+	static const int32 numParticles = 20000;
+	int currParticle = 0;
+	int32 particleIndices[numParticles];
 };

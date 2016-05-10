@@ -14,6 +14,8 @@ UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2Body* body;
 UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
 b2ParticleSystem* particleSystem;
+UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
+b2ParticleDef particleDef;
 
 const int NumFloaters = 5;
 UPROPERTY(Category = "LF", meta = (AllowPrivateAccess = "true"))
@@ -91,16 +93,17 @@ void AGameplayPawn::CleanUpLF()
 void AGameplayPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+	//SpawnParticle();
 	GroupedFloatingSprite->ClearInstances();
 	if (LMBPressed)
 	{
 		FVector2D mousePos = GetMouseWorldPosition();
-		int nx = WorldToGridX(mousePos.X);
-		int ny = WorldToGridY(mousePos.Y);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, FString::FromInt(nx) + FString(", ") + FString::FromInt(ny));
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0, FColor::Green, GetMouseWorldPosition().ToString());
-		DestroySquare(GetMouseWorldPosition(), 5);
+		DestroyTerrain(mousePos);
 	}
+	else
+		PrevMouseX = -32767;
 	UpdateLF(DeltaTime);
 	for (int i = 0; i < NumFloaters; i++)
 	{
@@ -108,6 +111,7 @@ void AGameplayPawn::Tick( float DeltaTime )
 			FloatingBody[i]->GetPosition().y*SCALE_FACTOR, -7.0f), FVector(1.0f, 1.0f, 1.0f)), FloatingSprite->GetSprite(), true, FColor::White);
 	}
 	UpdateWinCheck();
+	//GEngine->AddOnScreenDebugMessage(0, 1.0, FColor::Green, FString::FromInt(currParticle));
 }
 
 // Called to bind functionality to input
@@ -125,14 +129,31 @@ void AGameplayPawn::InitFluids()
 	b2PolygonShape box;
 	box.SetAsBox(25.0f, 25.0f);
 	b2ParticleSystemDef partSysDef;
-	partSysDef.radius = 0.8f;
-	partSysDef.density = 1.0;
+	//partSysDef.radius = 0.8f;
+	//partSysDef.density = 1.0;
 	particleSystem = world.CreateParticleSystem(&partSysDef);
 	b2ParticleGroupDef partGrDef;
 	partGrDef.position.Set(0.0f, 30.0f);
 	partGrDef.shape = &box;
 	particleSystem->CreateParticleGroup(partGrDef);
 }
+
+/*
+void AGameplayPawn::InitFluids()
+{
+	particleDef.position.Set(FMath::FRandRange(-0.5f, 0.5f), -15);
+	b2ParticleSystemDef partSysDef;
+	particleSystem = world.CreateParticleSystem(&partSysDef);
+}
+
+void AGameplayPawn::SpawnParticle()
+{
+	if (currParticle < numParticles)
+	{
+		particleIndices[currParticle] = particleSystem->CreateParticle(particleDef);
+		currParticle++;
+	}
+}*/
 
 void AGameplayPawn::InitTerrain()
 {
@@ -151,12 +172,12 @@ void AGameplayPawn::InitTerrain()
 			bodyDef.position.Set(GridToWorldX(i), GridToWorldY(j));
 			body = world.CreateBody(&bodyDef);
 			body->CreateFixture(&fixtureDef);
-			body->SetActive(true);
+			body->SetActive(false);
 			FVector2D CurrentCoord(i, j);
 			TerrainBodies[i][j] = body;
 		}
 	}
-	DestroySquare(FVector2D(0, 30), 25);
+	DestroySquare(WorldToGridX(0), WorldToGridY(30), 25);
 }
 
 void AGameplayPawn::InitFloating()
@@ -173,7 +194,7 @@ void AGameplayPawn::InitFloating()
 	{
 		int x = (int)FMath::RandRange(3, width - 5);
 		int y = (int)FMath::RandRange(WinHeight + 10, 500);
-		DestroySquare(FVector2D(GridToWorldX(x), GridToWorldY(y)), 3);
+		DestroySquare(x, y, 3);
 		b2BodyDef bDef;
 		bDef.type = b2_dynamicBody;
 		bDef.position.Set(GridToWorldX(x), GridToWorldY(y));
@@ -191,7 +212,7 @@ void AGameplayPawn::InitWinning()
 	for (int i = 0; i < width; i++)
 	{
 		MakeIndestructible(i, 0);
-		DestroySquare(FVector2D(GridToWorldX(i), GridToWorldY(15)), 15);
+		DestroySquare(i, 15, 15);
 	}
 	for (int i = 1; i < WinHeight; i++)
 	{
@@ -215,7 +236,6 @@ void AGameplayPawn::UpdateWinCheck()
 		GroupedFloatingSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(SCALE_FACTOR*GridToWorldX(width / (NumFloaters * 2) + i*width / NumFloaters), ScoreHeight, -5.0f), FVector(1.0f, 1.0f, 1.0f)),
 			FloatingSprite->GetSprite(), true, FColor::White);
 	}
-	//GEngine->AddOnScreenDebugMessage(0, 1, FColor::Green, "Balls in goal: " + FString::FromInt(numInGoal));
 }
 
 void AGameplayPawn::UpdateLF(float DeltaTime)
@@ -259,20 +279,22 @@ void AGameplayPawn::SetLMBReleased()
 	LMBPressed = false;
 }
 
-void AGameplayPawn::DestroySquare(FVector2D worldCoord, float r)
+void AGameplayPawn::DestroySquare(int nx, int ny, int nr)
 {
-	int nx = WorldToGridX(worldCoord.X);
-	int ny = WorldToGridY(worldCoord.Y);
-	int nr = r / spacing;
-	for (int i = nx - nr; i <= nx + nr; i++) {
-		for (int j = ny - nr; j <= ny + nr; j++) {
+	for (int i = nx - nr; i <= nx + nr; i++) 
+	{
+		for (int j = ny - nr; j <= ny + nr; j++)
+		{
 			if (i >= 0 && i < width && j >= 0 && j < height)
-				RemoveAtIndex(i, j);
-		}
+				if (grid[i][j] != UD_TERRAIN)
+					RemoveAtIndex(i, j);
+		} 
 	}
 	nr++;
-	for (int i = nx - nr; i <= nx + nr; i++) {
-		for (int j = ny - nr; j <= ny + nr; j++) {
+	for (int i = nx - nr; i <= nx + nr; i++)
+	{
+		for (int j = ny - nr; j <= ny + nr; j++) 
+		{
 			if (i >= 0 && i < width && j >= 0 && j < height)
 				UpdatePos(i, j);
 		}
@@ -302,25 +324,25 @@ float AGameplayPawn::GridToWorldY(int y)
 void AGameplayPawn::UpdatePos(int x, int y)
 {
 	FVector2D coord(x,y);
-	bool isInBoxSet = grid[x][y] != E_TERRAIN;
-	if (grid[x][y] != E_TERRAIN) {
+	if (grid[x][y] != E_TERRAIN) 
+	{
 		int sumAdjacent = 0;
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++) 
+		{
 			if (grid[x + dX[i]][y + dY[i]] != E_TERRAIN)
 				sumAdjacent++;
 		}
-		if (sumAdjacent == 8) {
-			if (isInBoxSet) {
-				DestroyBody(x,y);
-			}
+		if (sumAdjacent == 8)
+		{
+			DestroyBody(x,y);
 		}
-		else {
-			if (!isInBoxSet) {
-				CreateBody(x,y);
-			}
+		else 
+		{
+			CreateBody(x,y);
 		}
 	}
-	else if (isInBoxSet) {
+	else 
+	{
 		DestroyBody(x,y);
 	}
 }
@@ -328,15 +350,19 @@ void AGameplayPawn::UpdatePos(int x, int y)
 void AGameplayPawn::DestroyBody(int x, int y)
 {
 	if (boxSet.Find(FVector2D(x, y)) != NULL)
+	{
 		boxSet.Remove(FVector2D(x, y));
-	TerrainBodies[x][y]->SetActive(false);
+		TerrainBodies[x][y]->SetActive(false);
+	}
 }
 
 void AGameplayPawn::CreateBody(int x, int y)
 {
 	if (boxSet.Find(FVector2D(x, y)) == NULL)
+	{
 		boxSet.Add(FVector2D(x, y));
-	TerrainBodies[x][y]->SetActive(true);
+		TerrainBodies[x][y]->SetActive(true);
+	}
 }
 
 void AGameplayPawn::RemoveAtIndex(int x, int y)
@@ -351,12 +377,8 @@ void AGameplayPawn::RemoveAtIndex(int x, int y)
 
 void AGameplayPawn::AddSpriteAndUpdate(int x, int y)
 {
-	if (grid[x][y] == D_TERRAIN)
-	{
-		GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(GridToWorldX(x)*SCALE_FACTOR, GridToWorldY(y)*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
-			GroundSprite->GetSprite(), true, FColor::White);
-		TerrainBodies[x][y]->SetActive(false);
-	}
+	GroupedGroundSprite->AddInstance(FTransform(FRotator(0.0f, 0.0f, 90.0f), FVector(GridToWorldX(x)*SCALE_FACTOR, GridToWorldY(y)*SCALE_FACTOR, 0.0f), FVector(1.0f, 1.0f, 1.0f)),
+		GroundSprite->GetSprite(), true, FColor::White);
 }
 
 void AGameplayPawn::MakeIndestructible(int x, int y)
@@ -378,4 +400,88 @@ float AGameplayPawn::GetCameraStop()
 int32 AGameplayPawn::GetScore()
 {
 	return numInGoal;
+}
+
+void AGameplayPawn::DestroyLine(int x1, int y1, int x2, int y2, int l)
+{
+	int xl = l;
+	if (x1 > x2)
+		xl = -xl;
+	if (y1 < y2)
+		xl = -xl;
+	int maxX = Max(x1, x2) + l;
+	int maxY = Max(y1, y2) + l;
+	int minX = Min(x1, x2) - l;
+	int minY = Min(y1, y2) - l;
+	if (x1 == x2)
+		x1++;
+	float K = ((y2 - y1) / (float)(x2 - x1));
+	for (int i = minX; i <= maxX; i++) 
+	{
+		int minLine = (int)(y1 + K * (i - x1 + xl)) - l;
+		int maxLine = (int)(y1 + K * (i - x1 - xl)) + l;
+		for (int j = Max(minY, minLine); j <= Min(maxY, maxLine); j++) 
+		{
+			if (i >= 0 && i < width && j >= 0 && j < height)
+				RemoveAtIndex(i, j);
+		}
+	}
+	l++;
+	UpdateLine(x1, y1, x2, y2, l);
+}
+
+void AGameplayPawn::UpdateLine(int x1, int y1, int x2, int y2, int l)
+{
+	int xl = l;
+	if (x1 > x2)
+		xl = -xl;
+	if (y1 < y2)
+		xl = -xl;
+	int maxX = Max(x1, x2) + l;
+	int maxY = Max(y1, y2) + l;
+	int minX = Min(x1, x2) - l;
+	int minY = Min(y1, y2) - l;
+	if (x1 == x2)
+		x1++;
+	float K = ((y2 - y1) / (float)(x2 - x1));
+	for (int i = minX; i <= maxX; i++) 
+	{
+		int minLine = (int)(y1 + K * (i - x1 + xl)) - l;
+		int maxLine = (int)(y1 + K * (i - x1 - xl)) + l;
+		for (int j = Max(minY, minLine); j <= Min(maxY, maxLine); j++) 
+		{
+			if (i >= 0 && i < width && j >= 0 && j < height)
+				UpdatePos(i, j);
+		}
+	}
+}
+
+int AGameplayPawn::Max(int x1, int x2)
+{
+	if (x1 > x2)
+		return x1;
+	return x2;
+}
+
+int AGameplayPawn::Min(int x1, int x2)
+{
+	if (x1 < x2)
+		return x1;
+	return x2;
+}
+
+void AGameplayPawn::DestroyTerrain(FVector2D mousePos)
+{
+	int x = WorldToGridX(mousePos.X);
+	int y = WorldToGridY(mousePos.Y);
+	if (PrevMouseX == -32767) 
+	{
+		DestroySquare(x, y, 5);
+	}
+	else 
+	{
+		DestroyLine(PrevMouseX, PrevMouseY, x, y, 5);
+	}
+	PrevMouseX = x;
+	PrevMouseY = y;
 }
