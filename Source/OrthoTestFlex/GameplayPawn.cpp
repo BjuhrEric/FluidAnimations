@@ -57,6 +57,7 @@ void AGameplayPawn::BeginPlay()
 	Super::BeginPlay();
 	InitTerrain();
 	InitFluids();
+	//InitIndestructible();
 	InitFloating();
 	InitWinning();
 }
@@ -111,7 +112,7 @@ void AGameplayPawn::Tick( float DeltaTime )
 			FloatingBody[i]->GetPosition().y*SCALE_FACTOR, -7.0f), FVector(1.0f, 1.0f, 1.0f)), FloatingSprite->GetSprite(), true, FColor::White);
 	}
 	UpdateWinCheck();
-	//GEngine->AddOnScreenDebugMessage(0, 1.0, FColor::Green, FString::FromInt(currParticle));
+	//GEngine->AddOnScreenDebugMessage(0, 1.0, FColor::Green, FString::FromInt(particleSystem->GetParticleCount()));
 }
 
 // Called to bind functionality to input
@@ -218,6 +219,20 @@ void AGameplayPawn::InitWinning()
 	{
 		MakeIndestructible(0, i);
 		MakeIndestructible(width - 1, i);
+	}
+}
+
+void AGameplayPawn::InitIndestructible()
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int x = 30 + i * 10; x < 40 + i * 10; x++)
+		{
+			for (int y = 400 - i * 10; y < 410 - i * 10; y++)
+			{
+				MakeIndestructible(x, y);
+			}
+		}
 	}
 }
 

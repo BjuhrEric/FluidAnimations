@@ -41,7 +41,7 @@ private:
 
 	void InitWinning();
 
-	//void SpawnParticle();
+	void InitIndestructible();
 
 	void SetLMBPressed();
 
